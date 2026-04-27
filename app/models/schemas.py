@@ -141,6 +141,14 @@ class CrisisRequest(BaseModel):
     urgency: str = Field("normal", description="Urgency level: low / normal / high / critical")
 
 
+class CrisisRecord(CrisisRequest):
+    """A persisted crisis record."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: str = Field(..., description="ISO datetime string")
+    geo_location: GeoLocation = Field(..., description="Coordinates for the map")
+    reports: int = Field(1, description="Number of reports/severity scale for heatmap")
+
+
 class MatchResult(BaseModel):
     """A single volunteer match result."""
     volunteer_id: str
@@ -178,3 +186,10 @@ class PipelineResponse(BaseModel):
     audit_metadata: Optional[AuditMetadata] = None
     pipeline_errors: List[str] = Field(default_factory=list)
     success: bool
+
+
+class AnalyticsSummary(BaseModel):
+    """Aggregate statistics for the landing page and analytics dashboard."""
+    total_volunteers: int
+    deployed_volunteers: int
+    active_crises: int

@@ -23,11 +23,35 @@ from app.models.schemas import (
     PipelineResponse,
 )
 from app.orchestrator import run_ingestion_pipeline
-from app.services import db, vector_search
+from app.services import db, vector_search, geo
 from app.agents.embedding_agent import generate_query_embedding
 from app.core.config import settings
+import datetime
 
 router = APIRouter()
+
+def _score_severity(description: str) -> str:
+    if not settings.GEMINI_API_KEY:
+        return "high"
+    try:
+        from google import genai
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        prompt = (
+            "Classify the urgency of the following crisis description into exactly one of "
+            "these four categories: 'low', 'normal', 'high', 'critical'. "
+            f"Respond with ONLY the category word.\n\nDescription: {description}"
+        )
+        response = client.models.generate_content(
+            model=settings.MODEL_SCHEMA,  # gemini-2.0-flash — fast, cheap, sufficient for classification
+            contents=prompt,
+        )
+        level = response.text.strip().lower()
+        if level in ["low", "normal", "high", "critical"]:
+            return level
+        return "high"
+    except Exception as e:
+        print(f"[Routes] Error scoring severity: {e}")
+        return "high"
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +174,20 @@ async def match_volunteers(request: CrisisRequest):
       "urgency": "high"
     }
     """
+    # Auto-classify urgency
+    auto_urgency = _score_severity(request.description)
+    request.urgency = auto_urgency
+
+    # Geocode the crisis location
+    crisis_lat, crisis_lng = geo.geocode(request.location)
+
+    # Save to database to appear on analytics map
+    crisis_record_data = request.dict()
+    crisis_record_data["timestamp"] = datetime.datetime.utcnow().isoformat() + "Z"
+    crisis_record_data["geo_location"] = {"lat": crisis_lat, "lng": crisis_lng, "address": request.location}
+    crisis_record_data["reports"] = 5 if auto_urgency == "critical" else (3 if auto_urgency == "high" else 1)
+    db.save_crisis(crisis_record_data)
+
     # Build a rich query string
     query_text = (
         f"Crisis at {request.location}: {request.description}. "
@@ -165,18 +203,33 @@ async def match_volunteers(request: CrisisRequest):
         except Exception as e:
             print(f"[Routes] Warning: Could not generate query embedding: {e}")
 
-    # Search the vector store
+    # Search the vector store (get more than needed to allow distance re-ranking)
     raw_matches = vector_search.search_volunteers(
         query_text=query_text,
         query_embedding=query_embedding,
-        n_results=request.volunteers_needed,
+        n_results=request.volunteers_needed * 3,
     )
 
-    # Enrich matches with full volunteer data from DB
+    # Enrich matches and apply geo-weighting
     results = []
     for match in raw_matches:
         volunteer_data = db.get_volunteer(match["id"])
-        if volunteer_data:
+        if volunteer_data and volunteer_data.get("status") != "busy":
+            # Distance scoring
+            v_loc = volunteer_data.get("geo_location")
+            if v_loc:
+                v_lat, v_lng = v_loc["lat"], v_loc["lng"]
+            else:
+                v_lat, v_lng = geo.geocode(volunteer_data.get("location", ""))
+            
+            dist_km = geo.calculate_distance_km(crisis_lat, crisis_lng, v_lat, v_lng)
+            geo_score = geo.compute_geo_score(dist_km, settings.MAX_MATCH_RADIUS_KM)
+            
+            # Blend semantic and geo scores using configurable weight
+            semantic_score = match["score"]
+            geo_w = settings.GEO_WEIGHT_FACTOR
+            final_score = (semantic_score * (1.0 - geo_w)) + (geo_score * geo_w)
+
             # Remove internal fields before building the profile
             profile_data = {
                 k: v for k, v in volunteer_data.items()
@@ -188,12 +241,16 @@ async def match_volunteers(request: CrisisRequest):
                 results.append(
                     MatchResult(
                         volunteer_id=match["id"],
-                        match_score=match["score"],
+                        match_score=final_score,
                         volunteer_details=profile,
                     )
                 )
             except Exception as e:
                 print(f"[Routes] Warning: Could not build profile for {match['id']}: {e}")
+
+    # Sort by final blended score descending and take top N
+    results.sort(key=lambda x: x.match_score, reverse=True)
+    results = results[:request.volunteers_needed]
 
     return MatchResponse(
         crisis_request=request,
@@ -244,3 +301,33 @@ async def get_volunteer(volunteer_id: str):
     if not volunteer:
         raise HTTPException(status_code=404, detail=f"Volunteer '{volunteer_id}' not found.")
     return volunteer
+
+
+# ---------------------------------------------------------------------------
+# Analytics and Crisis map endpoints
+# ---------------------------------------------------------------------------
+
+@router.get("/crisis")
+async def list_crises():
+    """List all active crises for the analytics map."""
+    return db.get_all_crises()
+
+@router.get("/analytics/summary")
+async def get_analytics_summary():
+    """Return live summary statistics sourced entirely from the database.
+    Never returns hardcoded fallback numbers — shows real zeros when empty.
+    """
+    volunteers = db.get_all_volunteers()
+    crises = db.get_all_crises()
+
+    total      = len(volunteers)
+    deployed   = sum(1 for v in volunteers if v.get("status") == "busy")
+    available  = total - deployed
+    active_crises = len(crises)
+
+    from app.models.schemas import AnalyticsSummary
+    return AnalyticsSummary(
+        total_volunteers=total,
+        deployed_volunteers=deployed,
+        active_crises=active_crises,
+    )

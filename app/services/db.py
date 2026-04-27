@@ -17,6 +17,7 @@ from app.core.config import settings
 # In-memory mock store (prototype / local dev)
 # ---------------------------------------------------------------------------
 _MOCK_DB: Dict[str, Any] = {}
+_MOCK_CRISIS_DB: Dict[str, Any] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -51,6 +52,20 @@ def update_volunteer_status(volunteer_id: str, status: str) -> bool:
     return _mock_update_status(volunteer_id, status)
 
 
+def save_crisis(data: dict) -> str:
+    """Save a crisis record. Returns the generated crisis id."""
+    if settings.DB_BACKEND == "firestore":
+        return _firestore_save_crisis(data)
+    return _mock_save_crisis(data)
+
+
+def get_all_crises() -> List[dict]:
+    """Return all active crises."""
+    if settings.DB_BACKEND == "firestore":
+        return _firestore_get_all_crises()
+    return list(_MOCK_CRISIS_DB.values())
+
+
 # ---------------------------------------------------------------------------
 # Mock backend
 # ---------------------------------------------------------------------------
@@ -70,6 +85,16 @@ def _mock_update_status(volunteer_id: str, status: str) -> bool:
         _MOCK_DB[volunteer_id]["status"] = status
         return True
     return False
+
+
+def _mock_save_crisis(data: dict) -> str:
+    crisis_id = data.get("id") or str(uuid.uuid4())
+    _MOCK_CRISIS_DB[crisis_id] = {**data, "id": crisis_id}
+    return crisis_id
+
+
+def _mock_get_all_crises() -> List[dict]:
+    return list(_MOCK_CRISIS_DB.values())
 
 
 # ---------------------------------------------------------------------------
@@ -115,3 +140,19 @@ def _firestore_update_status(volunteer_id: str, status: str) -> bool:
         ref.update({"status": status})
         return True
     return False
+
+
+def _firestore_save_crisis(data: dict) -> str:
+    db = _get_firestore_client()
+    # Assume a setting FIRESTORE_COLLECTION_CRISES exists, fallback to 'crisis_requests'
+    col_name = getattr(settings, "FIRESTORE_COLLECTION_CRISES", "crisis_requests")
+    doc_ref = db.collection(col_name).document()
+    doc_ref.set({**data, "id": doc_ref.id})
+    return doc_ref.id
+
+
+def _firestore_get_all_crises() -> List[dict]:
+    db = _get_firestore_client()
+    col_name = getattr(settings, "FIRESTORE_COLLECTION_CRISES", "crisis_requests")
+    docs = db.collection(col_name).stream()
+    return [doc.to_dict() for doc in docs]

@@ -89,3 +89,57 @@ export async function getHealth() {
   const res = await fetch(`${BASE}/health`);
   return handleResponse(res);
 }
+
+/**
+ * GET /api/volunteers
+ * @returns {Promise<Array>}
+ */
+export async function getVolunteers() {
+  const res = await fetch(`${BASE}/volunteers`);
+  return handleResponse(res);
+}
+
+/**
+ * GET /api/volunteers/:id
+ * @param {string} volunteerId
+ */
+export async function getVolunteer(volunteerId) {
+  const res = await fetch(`${BASE}/volunteers/${volunteerId}`);
+  return handleResponse(res);
+}
+
+/**
+ * POST /api/ingest/audio
+ * @param {Blob} audioBlob  - audio/webm blob from MediaRecorder
+ * @param {string|null} hintLanguage
+ * @returns {Promise<{native_transcript, english_translation, detected_language, confidence}>}
+ */
+export async function ingestAudio(audioBlob, hintLanguage = null) {
+  const form = new FormData();
+  form.append('file', audioBlob, 'recording.webm');
+  if (hintLanguage) form.append('hint_language', hintLanguage);
+
+  const res = await fetch(`${BASE}/ingest/audio`, {
+    method: 'POST',
+    body: form,
+  });
+  return handleResponse(res);
+}
+
+/**
+ * GET /api/crisis
+ * @returns {Promise<Array>}
+ */
+export async function getCrises() {
+  const res = await fetch(`${BASE}/crisis`);
+  return handleResponse(res);
+}
+
+/**
+ * GET /api/analytics/summary
+ * @returns {Promise<{total_volunteers, deployed_volunteers, active_crises}>}
+ */
+export async function getAnalyticsSummary() {
+  const res = await fetch(`${BASE}/analytics/summary`);
+  return handleResponse(res);
+}

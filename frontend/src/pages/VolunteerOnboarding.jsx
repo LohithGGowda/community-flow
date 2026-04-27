@@ -7,9 +7,9 @@ import {
   Stethoscope, Truck, UtensilsCrossed, Wrench, BookOpen, Shield,
   Baby, Droplets, RotateCcw, RefreshCw, X, FileText, AlertTriangle,
 } from 'lucide-react';
-import { ingestText, ingestFile } from '../api';
+import { ingestText, ingestFile, ingestAudio } from '../api';
 
-// ????????? Constants ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+// --- Constants ---
 
 const SKILLS = [
   { id: 'first_aid',  label: 'First Aid',   icon: Stethoscope,     color: '#DC2626' },
@@ -42,7 +42,7 @@ const LANG_OPTIONS = [
 
 const SPOKEN_LANGUAGES = ['English','Hindi','Kannada','Tamil','Telugu','Malayalam','Marathi','Bengali','Gujarati','Urdu'];
 
-// ????????? Helpers ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+// --- Helpers ---
 
 function toggle(arr, set, val) {
   set(arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val]);
@@ -63,7 +63,7 @@ function formatTime(s) {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
-// ????????? Sub-components ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+// --- Sub-components ---
 
 function Chip({ active, onClick, children, color }) {
   return (
@@ -98,7 +98,7 @@ function ContribBadge({ label }) {
   );
 }
 
-// ????????? Input Method Cards ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+// --- Input Method Cards ---
 
 function MethodCard({ id, active, onToggle, icon, title, subtitle, badge, children }) {
   return (
@@ -127,7 +127,7 @@ function MethodCard({ id, active, onToggle, icon, title, subtitle, badge, childr
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>{subtitle}</div>
         </div>
         <div style={{ marginLeft: 'auto', color: active ? '#7c3aed' : 'var(--text-muted)', fontSize: '1.4rem' }}>
-          {active ? '???' : '???'}
+          {active ? '▲' : '▼'}
         </div>
       </button>
       {active && (
@@ -144,7 +144,7 @@ function MethodCard({ id, active, onToggle, icon, title, subtitle, badge, childr
 }
 
 
-// ????????? Main Component ?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+// --- Main Component ---
 
 export default function VolunteerOnboarding() {
   const navigate = useNavigate();
@@ -152,7 +152,7 @@ export default function VolunteerOnboarding() {
   // Which accordion panels are open (multiple can be open at once)
   const [openPanels, setOpenPanels] = useState({ speak: false, photo: false, upload: false, type: false });
 
-  // ?????? Shared form state (all 4 methods write into this) ??????
+  // Shared form state (all 4 methods write into this)
   const [name, setName]               = useState('');
   const [phone, setPhone]             = useState('');
   const [location, setLocation]       = useState('');
@@ -162,12 +162,12 @@ export default function VolunteerOnboarding() {
   const [notes, setNotes]             = useState('');
   const [hintLang, setHintLang]       = useState(null);
 
-  // ?????? Contribution tracking (which methods have added data) ??????
+  // Contribution tracking (which methods have added data)
   const [contributions, setContributions] = useState({
     speak: false, photo: false, upload: false, type: false,
   });
 
-  // ?????? Audio state ??????
+  // Audio state
   const mediaRecorderRef = useRef(null);
   const analyserRef      = useRef(null);
   const animFrameRef     = useRef(null);
@@ -179,24 +179,24 @@ export default function VolunteerOnboarding() {
   const [audioBlob, setAudioBlob]         = useState(null);
   const [transcript, setTranscript]       = useState({ native: '', english: '', lang: '', confidence: '' });
 
-  // ?????? Camera state ??????
+  // Camera state
   const webcamRef    = useRef(null);
   const [facingMode, setFacingMode]       = useState('environment');
   const [showLive, setShowLive]           = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
 
-  // ?????? File upload state ??????
+  // File upload state
   const fileInputRef = useRef(null);
   const [uploadedFile, setUploadedFile]   = useState(null);
   const [filePreview, setFilePreview]     = useState(null);
 
-  // ?????? Submission state ??????
+  // Submission state
   const [step, setStep]       = useState('input'); // 'input' | 'review' | 'success'
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [result, setResult]   = useState(null);
 
-  // ?????? Waveform ??????
+  // Waveform
   const drawWaveform = useCallback(() => {
     const analyser = analyserRef.current;
     const canvas   = canvasRef.current;
@@ -238,7 +238,7 @@ export default function VolunteerOnboarding() {
   const markContrib = (id) =>
     setContributions(p => ({ ...p, [id]: true }));
 
-  // ?????? Audio recording ??????
+  // Audio recording
   const startRecording = async () => {
     try {
       const stream   = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -286,18 +286,12 @@ export default function VolunteerOnboarding() {
     setLoading(true);
     setError('');
     try {
-      // Send to backend audio endpoint; falls back gracefully if not available
-      const fd = new FormData();
-      fd.append('file', audioBlob, 'recording.webm');
-      const res = await fetch('/api/ingest/audio', { method: 'POST', body: fd });
-      if (!res.ok) throw new Error('Audio processing failed ??? try typing your details instead.');
-      const data = await res.json();
+      const data = await ingestAudio(audioBlob, hintLang);
       setTranscript({ native: data.native_transcript, english: data.english_translation, lang: data.detected_language, confidence: data.confidence });
-      // Merge translated text into the shared notes field
       if (data.english_translation) setNotes(prev => prev ? `${prev}\n${data.english_translation}` : data.english_translation);
       markContrib('speak');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Audio processing failed — try typing your details instead.');
     } finally {
       setLoading(false);
     }
@@ -310,7 +304,7 @@ export default function VolunteerOnboarding() {
     setContributions(p => ({ ...p, speak: false }));
   };
 
-  // ?????? Camera ??????
+  // Camera
   const capture = useCallback(() => {
     const src = webcamRef.current?.getScreenshot();
     if (src) { setCapturedImage(src); setShowLive(false); markContrib('photo'); }
@@ -321,7 +315,7 @@ export default function VolunteerOnboarding() {
     setContributions(p => ({ ...p, photo: false }));
   };
 
-  // ?????? File upload ??????
+  // File upload
   const handleFileChange = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -342,12 +336,12 @@ export default function VolunteerOnboarding() {
     setContributions(p => ({ ...p, upload: false }));
   };
 
-  // ?????? Determine if we have enough to proceed ??????
+  // Determine if we have enough to proceed
   const hasAnyInput = () =>
     contributions.speak || contributions.photo || contributions.upload ||
     (name.trim() && phone.trim() && location.trim());
 
-  // ?????? Build the submission payload ??????
+  // Build the submission payload
   const buildTextPayload = () => {
     const parts = [];
     if (name)     parts.push(`Name: ${name}`);
@@ -387,7 +381,7 @@ export default function VolunteerOnboarding() {
   };
 
 
-  // ????????? SUCCESS SCREEN ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+  // --- SUCCESS SCREEN ---
   if (step === 'success') {
     const profile = result?.structured_profile;
     const audit   = result?.audit_metadata;
@@ -416,7 +410,7 @@ export default function VolunteerOnboarding() {
         {audit && (
           <div className="glass-card" style={{ textAlign: 'left', marginBottom: '24px' }}>
             <h3 style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
-              AI Audit ??? {audit.audit_status?.toUpperCase()}
+              AI Audit — {audit.audit_status?.toUpperCase()}
             </h3>
             <div style={{ display: 'flex', gap: '12px' }}>
               <ScorePill label="Cultural fit"   value={`${Math.round(audit.cultural_adequacy_score * 100)}%`} color={audit.cultural_adequacy_score >= 0.85 ? '#10b981' : '#f59e0b'} />
@@ -434,7 +428,7 @@ export default function VolunteerOnboarding() {
     );
   }
 
-  // ????????? REVIEW SCREEN ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+  // --- REVIEW SCREEN ---
   if (step === 'review') {
     return (
       <div className="page-container animate-fade-in">
@@ -462,10 +456,10 @@ export default function VolunteerOnboarding() {
         <div className="glass-card" style={{ marginBottom: '16px' }}>
           <h3 style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>Input Methods Used</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {contributions.speak  && <Badge color="#7c3aed">???? Voice</Badge>}
-            {contributions.photo  && <Badge color="#2563EB">???? Photo</Badge>}
-            {contributions.upload && <Badge color="#059669">???? File</Badge>}
-            {(name || notes)      && <Badge color="#D97706">?????? Typed</Badge>}
+            {contributions.speak  && <Badge color="#7c3aed">Voice</Badge>}
+            {contributions.photo  && <Badge color="#2563EB">Photo</Badge>}
+            {contributions.upload && <Badge color="#059669">File</Badge>}
+            {(name || notes)      && <Badge color="#D97706">Typed</Badge>}
           </div>
         </div>
 
@@ -510,31 +504,31 @@ export default function VolunteerOnboarding() {
 
       <div style={{ marginBottom: '28px' }}>
         <h1 className="page-title">How do you want to register?</h1>
-        <p className="page-subtitle">Pick the easiest option for you ??? or use all of them together.</p>
+        <p className="page-subtitle">Pick the easiest option for you — or use all of them together.</p>
       </div>
 
-      {/* ?????? Active contributions summary bar ?????? */}
+      {/* Active contributions summary bar */}
       {(contributions.speak || contributions.photo || contributions.upload || name || notes) && (
         <div className="glass-card animate-fade-in" style={{ marginBottom: '20px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', flexShrink: 0 }}>Added so far:</span>
-          {contributions.speak  && <Badge color="#7c3aed">???? Voice</Badge>}
-          {contributions.photo  && <Badge color="#2563EB">???? Photo</Badge>}
-          {contributions.upload && <Badge color="#059669">???? {uploadedFile?.name}</Badge>}
-          {(name || notes)      && <Badge color="#D97706">?????? Text</Badge>}
+          {contributions.speak  && <Badge color="#7c3aed">Voice</Badge>}
+          {contributions.photo  && <Badge color="#2563EB">Photo</Badge>}
+          {contributions.upload && <Badge color="#059669">{uploadedFile?.name}</Badge>}
+          {(name || notes)      && <Badge color="#D97706">Text</Badge>}
         </div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
 
-        {/* ?????? 1. SPEAK ?????? */}
+        {/* 1. SPEAK */}
         <MethodCard
           id="speak"
           active={openPanels.speak}
           onToggle={togglePanel}
           icon={<Mic size={26} color="white" />}
           title="SPEAK YOUR DETAILS"
-          subtitle="Any language ??? we will translate"
-          badge={contributions.speak ? '??? Done' : null}
+          subtitle="Any language — we will translate"
+          badge={contributions.speak ? 'Done' : null}
         >
           {/* Not recording, no audio yet */}
           {!isRecording && !audioUrl && (
@@ -547,7 +541,7 @@ export default function VolunteerOnboarding() {
           {isRecording && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#ef4444', marginBottom: '6px' }}>{formatTime(recordingTime)}</div>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '14px' }}>Listening??? speak naturally in any language</p>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '14px' }}>Listening... speak naturally in any language</p>
               <canvas ref={canvasRef} width={320} height={60} style={{ width: '100%', height: '60px', borderRadius: '10px', background: 'rgba(0,0,0,0.2)', marginBottom: '16px' }} />
               <button className="btn-primary" onClick={stopRecording} style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', height: '60px' }}>
                 <Square size={20} /> Stop Recording
@@ -574,7 +568,7 @@ export default function VolunteerOnboarding() {
           {loading && !transcript.english && (
             <div style={{ textAlign: 'center', padding: '20px' }}>
               <Loader2 size={36} className="animate-spin" style={{ color: '#7c3aed' }} />
-              <p style={{ color: 'var(--text-muted)', marginTop: '10px' }}>Translating???</p>
+              <p style={{ color: 'var(--text-muted)', marginTop: '10px' }}>Translating...</p>
             </div>
           )}
 
@@ -597,7 +591,7 @@ export default function VolunteerOnboarding() {
           )}
         </MethodCard>
 
-        {/* ?????? 2. TAKE A PHOTO ?????? */}
+        {/* 2. TAKE A PHOTO */}
         <MethodCard
           id="photo"
           active={openPanels.photo}
@@ -605,7 +599,7 @@ export default function VolunteerOnboarding() {
           icon={<Camera size={26} color="white" />}
           title="TAKE A PHOTO"
           subtitle="Snap your ID card, form, or handwritten note"
-          badge={contributions.photo ? '??? Done' : null}
+          badge={contributions.photo ? 'Done' : null}
         >
           {!showLive && !capturedImage && (
             <button className="btn-primary" onClick={() => setShowLive(true)} style={{ height: '56px' }}>
@@ -648,7 +642,7 @@ export default function VolunteerOnboarding() {
           )}
         </MethodCard>
 
-        {/* ?????? 3. UPLOAD A FILE ?????? */}
+        {/* 3. UPLOAD A FILE */}
         <MethodCard
           id="upload"
           active={openPanels.upload}
@@ -656,7 +650,7 @@ export default function VolunteerOnboarding() {
           icon={<Upload size={26} color="white" />}
           title="UPLOAD A FILE"
           subtitle="PDF, image, or scanned document"
-          badge={contributions.upload ? `??? ${uploadedFile?.name}` : null}
+          badge={contributions.upload ? uploadedFile?.name : null}
         >
           <input ref={fileInputRef} type="file" accept="image/*,.pdf,.txt" style={{ display: 'none' }} onChange={handleFileChange} />
 
@@ -686,7 +680,7 @@ export default function VolunteerOnboarding() {
           )}
         </MethodCard>
 
-        {/* ?????? 4. TYPE IT ?????? */}
+        {/* 4. TYPE IT */}
         <MethodCard
           id="type"
           active={openPanels.type}
@@ -694,7 +688,7 @@ export default function VolunteerOnboarding() {
           icon={<Send size={26} color="white" />}
           title="I WILL TYPE IT"
           subtitle="Fill in your details manually"
-          badge={(name || notes) ? '??? Filled' : null}
+          badge={(name || notes) ? 'Filled' : null}
         >
           {/* Language hint */}
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
@@ -720,7 +714,7 @@ export default function VolunteerOnboarding() {
           <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Koramangala, Bangalore" />
 
           <label>Anything else? (optional)</label>
-          <textarea value={notes} onChange={e => { setNotes(e.target.value); if (e.target.value) markContrib('type'); }} placeholder="e.g. I have a truck and can drive at night???" style={{ minHeight: '80px' }} />
+          <textarea value={notes} onChange={e => { setNotes(e.target.value); if (e.target.value) markContrib('type'); }} placeholder="e.g. I have a truck and can drive at night." style={{ minHeight: '80px' }} />
 
           {/* Skills */}
           <label style={{ marginBottom: '10px' }}>Skills (tap to select)</label>
@@ -749,14 +743,14 @@ export default function VolunteerOnboarding() {
         </MethodCard>
       </div>
 
-      {/* ?????? Error ?????? */}
+      {/* Error */}
       {error && (
         <div style={{ color: '#ef4444', padding: '12px', background: 'rgba(239,68,68,0.1)', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
           <AlertTriangle size={16} /> {error}
         </div>
       )}
 
-      {/* ?????? Continue button ?????? */}
+      {/* Continue button */}
       <button
         className="btn-primary"
         onClick={() => setStep('review')}
@@ -769,7 +763,7 @@ export default function VolunteerOnboarding() {
   );
 }
 
-// ????????? Tiny helpers ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+// --- Tiny helpers ---
 
 function Row({ label, value }) {
   if (!value) return null;

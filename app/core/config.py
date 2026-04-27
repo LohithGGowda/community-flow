@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     FIRESTORE_COLLECTION_CRISIS: str = "crisis_requests"
 
     # -----------------------------------------------------------------------
+    # Geo-aware matching
+    # -----------------------------------------------------------------------
+    # Weight of geographic proximity vs semantic similarity in final match score
+    # final_score = (semantic * (1 - GEO_WEIGHT_FACTOR)) + (geo * GEO_WEIGHT_FACTOR)
+    GEO_WEIGHT_FACTOR: float = 0.4
+    # Volunteers beyond this radius get geo_score = 0.0 (still returned, ranked lower)
+    MAX_MATCH_RADIUS_KM: float = 50.0
+
+    # -----------------------------------------------------------------------
     # Pipeline control
     # -----------------------------------------------------------------------
     # Skip the Cultural Auditor for English-only inputs (saves cost)
