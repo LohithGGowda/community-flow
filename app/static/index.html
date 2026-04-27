@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CommunityFlow</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- LANG BUTTON -->
+<button id="lang-btn" onclick="toggleLangMenu()">???? EN</button>
+<div id="lang-dropdown">
+  <div class="lang-opt active" onclick="setLang('en')">English</div>
+  <div class="lang-opt" onclick="setLang('kn')">???????????????</div>
+  <div class="lang-opt" onclick="setLang('hi')">???????????????</div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-overlay"><div class="spinner"></div><div class="loading-text" id="loading-text">Processing...</div></div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ===================== PAGE: HOME ===================== -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-logo">????</div>
+    <div class="hero-title">CommunityFlow</div>
+    <p class="hero-sub" data-i18n="tagline">Smart volunteer coordination for social impact</p>
+  </div>
+
+  <div class="problem-banner">
+    <h3>???? The Problem We Solve</h3>
+    <p>NGOs collect vital community data on paper ??? scattered, unread, wasted. We turn that chaos into real-time volunteer deployments.</p>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-volunteers">???</div><div class="stat-label">Volunteers</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-available">???</div><div class="stat-label">Available</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-deployed">???</div><div class="stat-label">Deployed</div></div>
+  </div>
+
+  <div class="action-card ac-green" onclick="goTo('register')" role="button" tabindex="0">
+    <div class="ac-icon">????</div>
+    <div class="ac-text"><h3 data-i18n="home_reg_title">Register as Volunteer</h3><p data-i18n="home_reg_desc">Join the network ??? add your skills and availability</p></div>
+    <span class="ac-arrow">???</span>
+  </div>
+
+  <div class="action-card ac-blue" onclick="goTo('find')" role="button" tabindex="0">
+    <div class="ac-icon">????</div>
+    <div class="ac-text"><h3 data-i18n="home_find_title">Find Volunteers for Crisis</h3><p data-i18n="home_find_desc">Describe the need ??? AI matches the right people</p></div>
+    <span class="ac-arrow">???</span>
+  </div>
+
+  <div class="action-card ac-orange" onclick="goTo('upload')" role="button" tabindex="0">
+    <div class="ac-icon">????</div>
+    <div class="ac-text"><h3 data-i18n="home_upload_title">Upload Survey / Report</h3><p data-i18n="home_upload_desc">Photo, PDF or handwritten form ??? AI reads it all</p></div>
+    <span class="ac-arrow">???</span>
+  </div>
+
+  <div class="action-card ac-purple" onclick="goTo('directory')" role="button" tabindex="0">
+    <div class="ac-icon">????</div>
+    <div class="ac-text"><h3 data-i18n="home_dir_title">Volunteer Directory</h3><p data-i18n="home_dir_desc">Browse and manage all registered volunteers</p></div>
+    <span class="ac-arrow">???</span>
+  </div>
+
+  <div style="height:8px"></div>
+  <div style="text-align:center;font-size:12px;color:var(--text-secondary);padding-bottom:8px;">
+    <span class="live-dot"></span>Powered by Gemini AI ?? Google Solutions Challenge 2026
+  </div>
+</div>
+
+<!-- ===================== PAGE: REGISTER ===================== -->
+<div id="page-register" class="page">
+  <div class="page-header">
+    <span class="ph-icon">????</span>
+    <h2 data-i18n="reg_title">Join as Volunteer</h2>
+  </div>
+
+  <div id="reg-form-wrap">
+    <div class="card">
+      <div class="card-title">???? Personal Details</div>
+      <div class="form-group">
+        <label for="reg-name" data-i18n="reg_name">Full Name</label>
+        <input type="text" id="reg-name" placeholder="Your full name" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="reg-phone" data-i18n="reg_phone">Phone Number</label>
+        <input type="tel" id="reg-phone" placeholder="e.g. 9876543210" autocomplete="tel">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label for="reg-location" data-i18n="reg_location">Your Area / Location</label>
+        <input type="text" id="reg-location" placeholder="e.g. Koramangala, Bangalore">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">??????? Skills <span style="font-weight:400;text-transform:none;font-size:12px">(tap to select)</span></div>
+      <div class="chip-grid" id="reg-skills">
+        <div class="chip-toggle" data-val="Elderly Care" onclick="toggleChip(this)">???? Elderly Care</div>
+        <div class="chip-toggle" data-val="First Aid" onclick="toggleChip(this)">???? First Aid</div>
+        <div class="chip-toggle" data-val="Cooking" onclick="toggleChip(this)">???? Cooking</div>
+        <div class="chip-toggle" data-val="Teaching" onclick="toggleChip(this)">???? Teaching</div>
+        <div class="chip-toggle" data-val="Flood Relief" onclick="toggleChip(this)">???? Flood Relief</div>
+        <div class="chip-toggle" data-val="Logistics" onclick="toggleChip(this)">???? Logistics</div>
+        <div class="chip-toggle" data-val="Translation" onclick="toggleChip(this)">??????? Translation</div>
+        <div class="chip-toggle" data-val="Driving" onclick="toggleChip(this)">???? Driving</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">??????? Availability</div>
+      <div class="option-grid" id="reg-avail">
+        <div class="option-card" data-val="Weekends" onclick="selectOption(this,'reg-avail')"><span class="opt-icon">???????</span>Weekends</div>
+        <div class="option-card" data-val="Weekday Evenings" onclick="selectOption(this,'reg-avail')"><span class="opt-icon">????</span>Evenings</div>
+        <div class="option-card" data-val="Anytime" onclick="selectOption(this,'reg-avail')"><span class="opt-icon">???</span>Anytime</div>
+        <div class="option-card" data-val="Emergency Only" onclick="selectOption(this,'reg-avail')"><span class="opt-icon">????</span>Emergency</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">??????? Languages Spoken</div>
+      <div class="lang-grid" id="reg-langs">
+        <div class="lang-item" data-val="Kannada" onclick="toggleLangItem(this)"><div class="lang-box">???</div>??????????????? Kannada</div>
+        <div class="lang-item" data-val="Hindi" onclick="toggleLangItem(this)"><div class="lang-box">???</div>??????????????? Hindi</div>
+        <div class="lang-item" data-val="English" onclick="toggleLangItem(this)"><div class="lang-box">???</div>English</div>
+        <div class="lang-item" data-val="Tamil" onclick="toggleLangItem(this)"><div class="lang-box">???</div>??????????????? Tamil</div>
+        <div class="lang-item" data-val="Telugu" onclick="toggleLangItem(this)"><div class="lang-box">???</div>?????????????????? Telugu</div>
+        <div class="lang-item" data-val="Urdu" onclick="toggleLangItem(this)"><div class="lang-box">???</div>???????? Urdu</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="form-group" style="margin-bottom:0">
+        <label for="reg-notes">Additional Notes <span style="font-weight:400;font-size:12px;color:var(--text-secondary)">(optional)</span></label>
+        <textarea id="reg-notes" placeholder="Any other skills, experience, or notes..." rows="3"></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-success" onclick="submitRegister()">??? Register Now</button>
+    <div style="height:8px"></div>
+  </div>
+
+  <div id="reg-success" style="display:none">
+    <div class="result-card rc-success">
+      <div class="rc-icon">????</div>
+      <div class="rc-title">You're Registered!</div>
+      <p class="rc-msg" id="reg-success-msg"></p>
+    </div>
+    <button class="btn btn-outline" onclick="resetRegister()">??? Register Another Volunteer</button>
+  </div>
+
+  <div id="reg-error" style="display:none">
+    <div class="result-card rc-error">
+      <div class="rc-icon">???</div>
+      <div class="rc-title">Registration Failed</div>
+      <p class="rc-msg" id="reg-error-msg"></p>
+    </div>
+    <button class="btn btn-ghost" onclick="showRegForm()">??? Try Again</button>
+  </div>
+</div>
+
+<!-- ===================== PAGE: FIND HELP ===================== -->
+<div id="page-find" class="page">
+  <div class="page-header">
+    <span class="ph-icon">????</span>
+    <h2 data-i18n="find_title">Find Volunteers</h2>
+  </div>
+
+  <div id="find-form-wrap">
+    <div class="card">
+      <div class="card-title">???? Crisis Details</div>
+      <div class="form-group">
+        <label for="find-desc">What help is needed?</label>
+        <textarea id="find-desc" placeholder="Describe the situation... e.g. Flood relief needed in HSR Layout, families displaced, need food and medical help" rows="4"></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label for="find-loc">Location of Crisis</label>
+        <input type="text" id="find-loc" placeholder="e.g. HSR Layout, Bangalore">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">??????? Skills Needed <span style="font-weight:400;text-transform:none;font-size:12px">(tap to select)</span></div>
+      <div class="chip-grid" id="find-skills">
+        <div class="chip-toggle" data-val="Elderly Care" onclick="toggleChip(this)">???? Elderly Care</div>
+        <div class="chip-toggle" data-val="First Aid" onclick="toggleChip(this)">???? First Aid</div>
+        <div class="chip-toggle" data-val="Cooking" onclick="toggleChip(this)">???? Cooking</div>
+        <div class="chip-toggle" data-val="Teaching" onclick="toggleChip(this)">???? Teaching</div>
+        <div class="chip-toggle" data-val="Flood Relief" onclick="toggleChip(this)">???? Flood Relief</div>
+        <div class="chip-toggle" data-val="Logistics" onclick="toggleChip(this)">???? Logistics</div>
+        <div class="chip-toggle" data-val="Translation" onclick="toggleChip(this)">??????? Translation</div>
+        <div class="chip-toggle" data-val="Driving" onclick="toggleChip(this)">???? Driving</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">???? Urgency Level</div>
+      <div class="option-grid" id="find-urgency">
+        <div class="option-card" data-val="normal" onclick="selectOption(this,'find-urgency')"><span class="opt-icon">????</span>Normal</div>
+        <div class="option-card sel-orange" data-val="high" onclick="selectOption(this,'find-urgency')"><span class="opt-icon">????</span>High</div>
+        <div class="option-card sel-red" data-val="critical" onclick="selectOption(this,'find-urgency')"><span class="opt-icon">????</span>Critical</div>
+        <div class="option-card" data-val="low" onclick="selectOption(this,'find-urgency')"><span class="opt-icon">????</span>Low</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">???? Volunteers Needed</div>
+      <div class="stepper">
+        <button class="step-btn" onclick="stepChange(-1)">???</button>
+        <div class="step-val" id="step-val">3</div>
+        <button class="step-btn" onclick="stepChange(1)">+</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="submitFind()">???? Find Volunteers</button>
+    <div style="height:8px"></div>
+  </div>
+
+  <div id="find-results" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:800" id="results-header">Found <span style="color:var(--blue)">0</span> volunteers</div>
+      <button class="btn-refresh" onclick="showFindForm()">??? Back</button>
+    </div>
+    <div id="results-list"></div>
+  </div>
+</div>
+
+<!-- ===================== PAGE: UPLOAD ===================== -->
+<div id="page-upload" class="page">
+  <div class="page-header">
+    <span class="ph-icon">????</span>
+    <h2>Upload Survey / Report</h2>
+  </div>
+
+  <div class="card">
+    <div class="card-title">???? AI-Powered Ingestion Pipeline</div>
+    <div class="pipeline">
+      <div class="pipe-step"><div class="pipe-icon" id="pipe-1">???????</div><div class="pipe-label">Perceive</div></div>
+      <div class="pipe-arrow">???</div>
+      <div class="pipe-step"><div class="pipe-icon" id="pipe-2">????</div><div class="pipe-label">Audit</div></div>
+      <div class="pipe-arrow">???</div>
+      <div class="pipe-step"><div class="pipe-icon" id="pipe-3">????</div><div class="pipe-label">Structure</div></div>
+      <div class="pipe-arrow">???</div>
+      <div class="pipe-step"><div class="pipe-icon" id="pipe-4">????</div><div class="pipe-label">Embed</div></div>
+      <div class="pipe-arrow">???</div>
+      <div class="pipe-step"><div class="pipe-icon" id="pipe-5">???</div><div class="pipe-label">Stored</div></div>
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary)">Upload any file ??? handwritten survey, photo, PDF ??? our 4-agent AI pipeline extracts and structures the data automatically.</p>
+  </div>
+
+  <div class="inner-tabs">
+    <div class="inner-tab active" onclick="switchUploadTab('file')">???? Upload File</div>
+    <div class="inner-tab" onclick="switchUploadTab('text')">?????? Type / Paste Text</div>
+  </div>
+
+  <div id="upload-file-panel" class="inner-panel active">
+    <div class="card">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div class="upload-icon">????</div>
+        <div class="upload-text">Tap to choose a file</div>
+        <div class="upload-hint">PDF, JPG, PNG, HEIC ??? max 10 MB</div>
+        <div class="upload-preview" id="upload-preview"></div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.heic,.webp,.txt" style="display:none" onchange="fileSelected(this)">
+      <div style="height:12px"></div>
+      <div class="form-group" style="margin-bottom:0">
+        <label for="file-lang">Language hint <span style="font-weight:400;font-size:12px;color:var(--text-secondary)">(optional)</span></label>
+        <select id="file-lang">
+          <option value="">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="kn">Kannada (???????????????)</option>
+          <option value="hi">Hindi (???????????????)</option>
+          <option value="ta">Tamil (???????????????)</option>
+          <option value="te">Telugu (??????????????????)</option>
+          <option value="ur">Urdu (????????)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitFileUpload()" id="file-upload-btn" disabled>???? Process File</button>
+  </div>
+
+  <div id="upload-text-panel" class="inner-panel">
+    <div class="card">
+      <div class="form-group">
+        <label for="text-input">Paste or type the survey / report text</label>
+        <textarea id="text-input" placeholder="e.g. Name: Rajesh Kumar. Skills: Shramadana, elderly care. Available Sundays. Location: Jayanagar. Contact: 9845012345." rows="6"></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label for="text-lang">Language</label>
+        <select id="text-lang">
+          <option value="">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="kn">Kannada (???????????????)</option>
+          <option value="hi">Hindi (???????????????)</option>
+          <option value="ta">Tamil (???????????????)</option>
+          <option value="te">Telugu (??????????????????)</option>
+          <option value="ur">Urdu (????????)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitTextUpload()">?????? Process with AI</button>
+  </div>
+
+  <div id="upload-result" style="display:none;margin-top:8px"></div>
+</div>
+
+<!-- ===================== PAGE: DIRECTORY ===================== -->
+<div id="page-directory" class="page">
+  <div class="page-header">
+    <span class="ph-icon">????</span>
+    <h2 data-i18n="dir_title">Volunteer Directory</h2>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-ico">????</span>
+    <input type="text" id="dir-search" placeholder="Search by name, skill, or location..." oninput="filterDir()" autocomplete="off">
+  </div>
+
+  <div class="refresh-row">
+    <button class="btn-refresh" onclick="loadDirectory()">???? Refresh</button>
+  </div>
+
+  <div id="dir-list">
+    <div class="empty"><div class="empty-ico">????</div><h3>Loading volunteers...</h3></div>
+  </div>
+</div>
+
+<!-- ===================== BOTTOM NAV ===================== -->
+<nav id="bottom-nav">
+  <button class="nav-tab active" id="nav-home" onclick="goTo('home')">
+    <span class="nav-icon">????</span><span>Home</span>
+  </button>
+  <button class="nav-tab" id="nav-register" onclick="goTo('register')">
+    <span class="nav-icon">????</span><span>Register</span>
+  </button>
+  <button class="nav-tab" id="nav-find" onclick="goTo('find')">
+    <span class="nav-icon">????</span><span>Find Help</span>
+  </button>
+  <button class="nav-tab" id="nav-upload" onclick="goTo('upload')">
+    <span class="nav-icon">????</span><span>Upload</span>
+  </button>
+  <button class="nav-tab" id="nav-directory" onclick="goTo('directory')">
+    <span class="nav-icon">????</span><span>Directory</span>
+  </button>
+</nav>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
