@@ -1,0 +1,24 @@
+# CommunityFlow — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Google AI / Cloud
+google-genai>=1.17.0
+google-cloud-aiplatform==1.74.0
+google-cloud-firestore==2.19.0
+
+# Data validation
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# File handling
+python-multipart==0.0.12
+
+# Local vector DB (prototype)
+chromadb==0.6.3
+
+# Utilities
+python-dotenv==1.0.1
