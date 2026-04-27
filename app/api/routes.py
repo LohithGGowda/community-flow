@@ -1,9 +1,10 @@
 """
 routes.py — FastAPI Route Definitions
 
+Three core endpoints matching the CommunityFlow architecture:
+
 POST /api/ingest/text     — Ingest plain text volunteer data
 POST /api/ingest/file     — Ingest a file (PDF, image, etc.)
-POST /api/ingest/audio    — Transcribe + translate spoken audio (any language)
 POST /api/match           — Match a crisis request to volunteers
 POST /api/volunteers/{id}/status  — Update volunteer availability
 GET  /api/volunteers      — List all volunteers (debug/demo)
@@ -119,84 +120,6 @@ async def ingest_file(
     try:
         result = run_ingestion_pipeline(
             file_bytes=file_bytes,
-            mime_type=content_type,
-            hint_language=hint_language,
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ---------------------------------------------------------------------------
-# Ingestion: Audio (speech-to-text + translation)
-# ---------------------------------------------------------------------------
-
-ALLOWED_AUDIO_TYPES = {
-    "audio/webm",
-    "audio/ogg",
-    "audio/wav",
-    "audio/mp4",
-    "audio/mpeg",
-    "audio/m4a",
-    "audio/x-m4a",
-}
-
-@router.post("/ingest/audio")
-async def ingest_audio(
-    file: UploadFile = File(...),
-    hint_language: Optional[str] = Form(None),
-):
-    """
-    Audio Transcription + Translation Gate.
-
-    Accepts a recorded audio blob (webm/ogg/wav/mp4) from the browser's
-    MediaRecorder API. Uses Gemini's native audio understanding to:
-      1. Transcribe the speech verbatim in the original language.
-      2. Translate it to English, preserving cultural terms and honorifics.
-
-    Returns:
-    {
-      "native_transcript":   "<original language text>",
-      "english_translation": "<English translation with cultural notes>",
-      "detected_language":   "<ISO 639-1 code>",
-      "confidence":          "high|medium|low"
-    }
-
-    The frontend uses this to populate the volunteer text area with both
-    the native transcript and the English translation for cultural review.
-    """
-    audio_bytes = await file.read()
-
-    if len(audio_bytes) > settings.MAX_UPLOAD_SIZE_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Audio too large. Max size is {settings.MAX_UPLOAD_SIZE_BYTES // (1024*1024)} MB.",
-        )
-
-    content_type = file.content_type or "audio/webm"
-    # Normalize common browser variants
-    if content_type in ("audio/webm;codecs=opus", "audio/webm; codecs=opus"):
-        content_type = "audio/webm"
-
-    if content_type not in ALLOWED_AUDIO_TYPES:
-        raise HTTPException(
-            status_code=415,
-            detail=f"Unsupported audio type: {content_type}. Allowed: {', '.join(ALLOWED_AUDIO_TYPES)}",
-        )
-
-    if not settings.GEMINI_API_KEY:
-        print("[Routes] GEMINI_API_KEY not found. Returning mock audio transcription.")
-        return {
-            "native_transcript": "ನಾನು ತುರ್ತು ಪರಿಸ್ಥಿತಿಯಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ. ನನ್ನ ಬಳಿ ವಾಹನವಿದೆ.",
-            "english_translation": "I can help in an emergency. I have a vehicle.",
-            "detected_language": "kn",
-            "confidence": "high"
-        }
-
-    try:
-        from app.agents.audio_agent import transcribe_and_translate
-        result = transcribe_and_translate(
-            audio_bytes=audio_bytes,
             mime_type=content_type,
             hint_language=hint_language,
         )

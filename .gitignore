@@ -3,6 +3,7 @@
 *.key
 *.pem
 service-account*.json
+grok-api.pdf
 
 # Python
 __pycache__/

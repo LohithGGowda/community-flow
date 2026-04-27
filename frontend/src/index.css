@@ -1,110 +1,94 @@
-@import "leaflet/dist/leaflet.css";
-
 :root {
-  --primary: #4f46e5;
   --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   --secondary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --bg-dark: #0f172a;
-  --glass-bg: rgba(30, 41, 59, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --background-dark: #0f172a;
   --text-light: #f8fafc;
   --text-muted: #94a3b8;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
-  background-color: var(--bg-dark);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--background-dark);
   color: var(--text-light);
+  line-height: 1.5;
   min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Glassmorphism System */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-}
-
-/* Typography */
-h1, h2, h3 {
-  letter-spacing: -0.02em;
-}
-
-/* Forms & Inputs */
-input, textarea {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  padding: 16px;
-  color: white;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  margin-bottom: 16px;
-}
-
-input:focus, textarea:focus {
-  outline: none;
-  border-color: #7c3aed;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-input::placeholder, textarea::placeholder {
-  color: var(--text-muted);
-}
-
-/* Buttons */
-button {
-  width: 100%;
-  padding: 16px;
   border-radius: 16px;
-  border: none;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: white;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-button:active {
-  transform: scale(0.98);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  box-shadow: var(--glass-shadow);
+  padding: 24px;
 }
 
 .btn-primary {
   background: var(--primary-gradient);
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+  color: white;
+  border: none;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
 .btn-secondary {
   background: var(--secondary-gradient);
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  color: white;
+  border: none;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
 }
 
-/* Layout */
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
 .page-container {
   max-width: 600px;
   margin: 0 auto;
-  min-height: 100vh;
   padding: 24px;
+  flex: 1;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -140,20 +124,28 @@ button:disabled {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+/* Form Elements */
+input, textarea {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .5; }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-muted);
 }
